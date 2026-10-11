@@ -1,0 +1,77 @@
+{#- Shared chrome for every content page. Reuses the app's stylesheets so the
+    header/footer match getmaize.ai; content-specific rules live in assets/content.css. -#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <title>{{ meta.title }} | Maize</title>
+    <meta name="description" content="{{ meta.description }}">
+    <link rel="canonical" href="{{ url }}">
+    <meta property="og:type" content="{% block og_type %}article{% endblock %}">
+    <meta property="og:site_name" content="Maize">
+    <meta property="og:title" content="{{ meta.title }}">
+    <meta property="og:description" content="{{ meta.description }}">
+    <meta property="og:url" content="{{ url }}">
+    <meta property="og:image" content="{{ meta.image or (site_url ~ '/static/images/og-default.png') }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ meta.title }}">
+    <meta name="twitter:description" content="{{ meta.description }}">
+    <meta name="twitter:image" content="{{ meta.image or (site_url ~ '/static/images/og-default.png') }}">
+    {% block head %}{% endblock %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=14">
+    <link rel="stylesheet" href="/static/css/landing.css?v=4">
+    <link rel="stylesheet" href="{{ assets_url }}/content.css?v=1">
+</head>
+<body class="landing-page mc-page">
+    <header class="site-header">
+        <div class="header-container">
+            <a href="/" class="header-logo">
+                <img src="/static/images/maize-logo.png" alt="Maize" class="logo-img">
+                <span class="logo-text">Maize</span>
+            </a>
+            <nav class="header-nav">
+                <a href="/resources/" class="nav-link">Resources</a>
+                <a href="/ai-policy-generator" class="nav-link">AI policy generator</a>
+                <a href="/auth0/login?role=professor&screen_hint=signup" class="btn btn-primary nav-cta">Try for free</a>
+                <a href="/auth0/login?role=professor" class="btn btn-nav-login">Professor Login</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="mc-main">
+        <div class="mc-wrap">
+            <nav class="mc-crumbs" aria-label="Breadcrumb">
+                <a href="/">Maize</a><span aria-hidden="true">/</span>
+                {% block crumbs %}<a href="/{{ section }}/">{{ section_name }}</a>{% endblock %}
+            </nav>
+            {% block main %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <img src="/static/images/maize-logo.png" alt="Maize" class="footer-logo">
+                <span class="footer-tagline">AI that teaches thinking, not answers.</span>
+            </div>
+            <div class="footer-links">
+                <a href="/">Home</a>
+                <a href="/resources/">Resources</a>
+                <a href="/ai-syllabus-policy/">AI syllabus policy</a>
+                <a href="/ai-policy-generator">Free AI policy generator</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms of Service</a>
+            </div>
+            <div class="footer-copy">
+                <p>&copy; {{ year }} Maize. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

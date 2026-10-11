@@ -1,0 +1,21 @@
+{% extends "_base.html" %}
+{% block head %}<script type="application/ld+json">{{ jsonld | safe }}</script>{% endblock %}
+{% block crumbs %}<a href="/{{ section }}/">{{ section_name }}</a><span aria-hidden="true">/</span><span>{{ meta.title }}</span>{% endblock %}
+{% block main %}
+<article class="mc-article">
+    <header class="mc-article-head">
+        <h1>{{ meta.title }}</h1>
+        <p class="mc-lede">{{ meta.description }}</p>
+        {% if meta.date %}<p class="mc-dateline"><time datetime="{{ meta.date.isoformat() }}">{{ meta.date.strftime('%B %-d, %Y') }}</time></p>{% endif %}
+    </header>
+    <div class="mc-body">
+        {{ body | safe }}
+    </div>
+    <aside class="mc-cta">
+        <h2>Give your students a TA that guides instead of answers</h2>
+        <p>Maize answers questions from your own course materials and shows you what students struggle with. Create and test one for free.</p>
+        <a href="/auth0/login?role=professor&screen_hint=signup" class="btn btn-primary">Try Maize for free</a>
+        <a href="/ai-policy-generator" class="btn btn-secondary-outline">Write a course AI policy</a>
+    </aside>
+</article>
+{% endblock %}

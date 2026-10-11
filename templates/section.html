@@ -1,0 +1,27 @@
+{% extends "_base.html" %}
+{% block og_type %}website{% endblock %}
+{% block crumbs %}<span>{{ section_name }}</span>{% endblock %}
+{% block main %}
+<section class="mc-section">
+    <header class="mc-article-head">
+        <h1>{{ meta.title }}</h1>
+        <p class="mc-lede">{{ meta.description }}</p>
+    </header>
+    <div class="mc-body">
+        {{ body | safe }}
+    </div>
+    {% if cards %}
+    <ul class="mc-cards">
+        {% for c in cards %}
+        <li class="mc-card">
+            <a href="{{ c.url }}"><h2>{{ c.title }}</h2></a>
+            <p>{{ c.description }}</p>
+            {% if c.date %}<time datetime="{{ c.date.isoformat() }}">{{ c.date.strftime('%B %-d, %Y') }}</time>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="mc-muted">New guides are on the way. In the meantime, the <a href="/ai-policy-generator">free AI policy generator</a> is ready to use.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,69 @@
+# Pull requests: build + tests only (the "check" job is a required status check).
+# Push to main (a merged PR): build, then rsync dist/ to the VPS. nginx serves
+# the files directly, so no app restart and no downtime.
+name: Build and deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0            # full history so lastmod comes from git
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+      - run: python build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install deploy key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Rsync to VPS
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          rsync -rlcz --delete --delay-updates --chmod=D755,F644 \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            dist/ "$DEPLOY_USER@$DEPLOY_HOST:/var/www/maize-content/"
+      - name: Smoke test
+        run: |
+          curl -fsS -o /dev/null https://getmaize.ai/sitemap-content.xml
+          curl -fsS -o /dev/null https://getmaize.ai/resources/
+          echo "deployed: https://getmaize.ai/resources/"

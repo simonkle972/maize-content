@@ -1,0 +1,32 @@
+/* Content pages (maize-content). Loaded after the app's style.css + landing.css. */
+.mc-main { background: var(--maize-light-cream, #FDF8F2); padding: 2.5rem 1rem 4rem; }
+.mc-wrap { max-width: 760px; margin: 0 auto; }
+.mc-crumbs { font-size: .875rem; color: #6b5a50; margin-bottom: 1.5rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+.mc-crumbs a { color: inherit; text-decoration: none; }
+.mc-crumbs a:hover { text-decoration: underline; }
+.mc-article-head h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); line-height: 1.15; color: var(--maize-charcoal, #2B1F1A); margin: 0 0 .75rem; }
+.mc-lede { font-size: 1.15rem; color: #4A3328; margin: 0 0 .5rem; }
+.mc-dateline { font-size: .875rem; color: #6b5a50; margin: 0 0 2rem; }
+.mc-body { font-size: 1.05rem; line-height: 1.7; color: #2B1F1A; }
+.mc-body h2 { font-size: 1.5rem; margin: 2.25rem 0 .75rem; }
+.mc-body h3 { font-size: 1.2rem; margin: 1.75rem 0 .5rem; }
+.mc-body p, .mc-body ul, .mc-body ol { margin: 0 0 1.1rem; }
+.mc-body li { margin: .3rem 0; }
+.mc-body a { color: var(--maize-orange, #D9772A); }
+.mc-body blockquote { border-left: 4px solid var(--maize-amber, #F2A93B); margin: 1.25rem 0; padding: .25rem 1rem; color: #4A3328; }
+.mc-body pre { background: #fff; border: 1px solid #eadfce; border-radius: 8px; padding: 1rem; overflow-x: auto; font-size: .9rem; }
+.mc-body table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: .95rem; }
+.mc-body th, .mc-body td { border-bottom: 1px solid #eadfce; padding: .5rem .6rem; text-align: left; vertical-align: top; }
+.mc-cta { margin-top: 3rem; padding: 1.75rem; border-radius: 14px; background: var(--maize-charcoal, #2B1F1A); color: #fff; }
+.mc-cta h2 { font-size: 1.35rem; margin: 0 0 .5rem; color: #fff; }
+.mc-cta p { margin: 0 0 1.1rem; color: var(--maize-cream, #F7EBD8); }
+.mc-cta .btn { margin: 0 .5rem .5rem 0; }
+.mc-cta .btn-secondary-outline { color: #fff; border-color: rgba(255,255,255,.5); }
+.mc-cards { list-style: none; padding: 0; margin: 2rem 0 0; display: grid; gap: 1rem; }
+.mc-card { background: #fff; border: 1px solid #eadfce; border-radius: 12px; padding: 1.25rem 1.5rem; }
+.mc-card h2 { font-size: 1.2rem; margin: 0 0 .4rem; color: var(--maize-charcoal, #2B1F1A); }
+.mc-card a { text-decoration: none; }
+.mc-card a:hover h2 { color: var(--maize-orange, #D9772A); }
+.mc-card p { margin: 0 0 .4rem; color: #4A3328; }
+.mc-card time { font-size: .8rem; color: #6b5a50; }
+.mc-muted { color: #6b5a50; }
