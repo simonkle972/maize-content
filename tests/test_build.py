@@ -33,11 +33,12 @@ Some *Markdown* and a [link](/ai-policy-generator).
 def site(tmp_path):
     content = tmp_path / "content"
     write(content / "resources" / "_index.md",
-          "---\ntitle: Resources\ndescription: Guides for instructors on AI in teaching, written from running Maize.\n---\nIntro.\n")
-    write(content / "ai-syllabus-policy" / "_index.md",
-          "---\ntitle: AI syllabus policy\ndescription: Guides and examples for writing a course AI policy, by assessment type and discipline.\n---\nIntro.\n")
-    write(content / "ai-syllabus-policy" / "problem-sets.md", GOOD)
-    write(content / "ai-syllabus-policy" / "hidden.md", GOOD.replace("date: 2026-10-01", "date: 2026-10-01\ndraft: true"))
+          "---\ntitle: Resources for instructors\nnav_title: Resources\ndescription: Guides for instructors on AI in teaching, written from running Maize.\n---\nIntro.\n")
+    write(content / "resources" / "ai-syllabus-policy" / "_index.md",
+          "---\ntitle: AI syllabus policy examples\nnav_title: AI syllabus policy\ndescription: Guides and examples for writing a course AI policy, by assessment type and discipline.\n---\nIntro.\n")
+    write(content / "resources" / "ai-syllabus-policy" / "problem-sets.md", GOOD)
+    write(content / "resources" / "ai-syllabus-policy" / "hidden.md", GOOD.replace("date: 2026-10-01", "date: 2026-10-01\ndraft: true"))
+    write(content / "resources" / "loose-guide.md", GOOD)
     write(content / "_drafts" / "x.md", "not even parsed")
     return content
 
@@ -47,24 +48,37 @@ def test_build_outputs_pages_and_sitemap(site, tmp_path):
     built = build.build(site, ROOT / "assets", ROOT / "templates", out)
     urls = sorted(b["url"] for b in built)
     assert urls == [
-        "https://getmaize.ai/ai-syllabus-policy/",
-        "https://getmaize.ai/ai-syllabus-policy/problem-sets/",
         "https://getmaize.ai/resources/",
+        "https://getmaize.ai/resources/ai-syllabus-policy/",
+        "https://getmaize.ai/resources/ai-syllabus-policy/problem-sets/",
+        "https://getmaize.ai/resources/loose-guide/",
     ]
-    page = (out / "ai-syllabus-policy" / "problem-sets" / "index.html").read_text()
+    page = (out / "resources" / "ai-syllabus-policy" / "problem-sets" / "index.html").read_text()
     assert "<title>Writing an AI policy for problem sets | Maize</title>" in page
-    assert '<link rel="canonical" href="https://getmaize.ai/ai-syllabus-policy/problem-sets/">' in page
+    assert '<link rel="canonical" href="https://getmaize.ai/resources/ai-syllabus-policy/problem-sets/">' in page
     assert '"@type": "Article"' in page and '"datePublished": "2026-10-01"' in page
+    assert '"position": 3, "name": "AI syllabus policy"' in page and '"position": 4' in page
+    assert 'href="/resources/">Resources</a>' in page and 'href="/resources/ai-syllabus-policy/">AI syllabus policy</a>' in page
     assert "<h2" in page and "<em>Markdown</em>" in page
-    assert not (out / "ai-syllabus-policy" / "hidden").exists()
+    assert 'href="/ai-syllabus-policy/"' not in page          # old footer link gone
+    assert not (out / "resources" / "ai-syllabus-policy" / "hidden").exists()
     assert (out / "resources" / "assets" / "content.css").exists()
 
-    index = (out / "ai-syllabus-policy" / "index.html").read_text()
-    assert 'href="/ai-syllabus-policy/problem-sets/"' in index
+    cat = (out / "resources" / "ai-syllabus-policy" / "index.html").read_text()
+    assert 'href="/resources/ai-syllabus-policy/problem-sets/"' in cat
+
+    hub = (out / "resources" / "index.html").read_text()
+    assert 'href="/resources/ai-syllabus-policy/"' in hub            # category block
+    assert 'href="/resources/ai-syllabus-policy/problem-sets/"' in hub
+    assert 'href="/resources/loose-guide/"' in hub
+
+    legacy = (out / "ai-syllabus-policy" / "problem-sets" / "index.html").read_text()
+    assert "noindex" in legacy and "https://getmaize.ai/resources/ai-syllabus-policy/problem-sets/" in legacy
+    assert (out / "ai-syllabus-policy" / "index.html").exists()
 
     root = ET.fromstring((out / "sitemap-content.xml").read_text())
     locs = [u.find(NS + "loc").text for u in root.iter(NS + "url")]
-    assert locs == urls
+    assert locs == urls                                               # stubs not in sitemap
     for u in root.iter(NS + "url"):
         dt.date.fromisoformat(u.find(NS + "lastmod").text)
 
@@ -72,6 +86,12 @@ def test_build_outputs_pages_and_sitemap(site, tmp_path):
 def test_unknown_section_is_refused(site, tmp_path):
     write(site / "blog" / "_index.md", "---\ntitle: Blog\ndescription: " + "x" * 60 + "\n---\n")
     with pytest.raises(build.BuildError, match="not a known section"):
+        build.build(site, ROOT / "assets", ROOT / "templates", tmp_path / "dist")
+
+
+def test_category_needs_index(site, tmp_path):
+    write(site / "resources" / "empty-cat" / "page.md", GOOD)
+    with pytest.raises(build.BuildError, match="_index.md is required"):
         build.build(site, ROOT / "assets", ROOT / "templates", tmp_path / "dist")
 
 

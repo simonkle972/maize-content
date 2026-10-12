@@ -3,22 +3,33 @@
 Static marketing pages for getmaize.ai, served by nginx straight from disk.
 Publishing a page here never restarts the Maize app.
 
+Everything lives under `/resources/`. Topics are categories (subfolders) inside it.
+
 | URL | Source |
 |---|---|
-| `/resources/<slug>/` | `content/resources/<slug>.md` |
-| `/ai-syllabus-policy/<slug>/` | `content/ai-syllabus-policy/<slug>.md` |
-| `/resources/`, `/ai-syllabus-policy/` | that section's `_index.md` plus an auto-generated list of its pages |
+| `/resources/` | `content/resources/_index.md` plus auto-generated blocks for each category and any top-level guides |
+| `/resources/<slug>/` | `content/resources/<slug>.md` (a guide that fits no category) |
+| `/resources/<category>/` | `content/resources/<category>/_index.md` plus an auto-generated list of its pages |
+| `/resources/<category>/<slug>/` | `content/resources/<category>/<slug>.md` |
 | `/sitemap-content.xml` | generated from every built page; the app's `/sitemap.xml` index points at it |
+
+Current categories: `ai-syllabus-policy` (AI syllabus policy examples by discipline).
 
 ## Add a page
 
-1. Copy `content/_drafts/example-article.md` to `content/<section>/<slug>.md`. The filename is the URL: lowercase, dashes only.
+1. Copy `content/_drafts/example-article.md` to `content/resources/<category>/<slug>.md` (or `content/resources/<slug>.md`). The filename is the URL: lowercase, dashes only.
 2. Fill in the front matter. `title` and `description` (50 to 160 chars) are required; `date` is the published date; `draft: true` hides the page.
 3. Write the body in Markdown. Headings start at `##`.
 4. `python build.py --check` locally (optional), then open a pull request. The **check** job builds the whole site and fails on missing front matter, a bad description length, an unknown section or a bad filename.
 5. Merge. The **deploy** job rsyncs the build to the VPS and curls the live URL. Pages are live within a minute; the app's sitemap index already links the content sitemap, so search engines pick the page up on their next crawl.
 
-Only the sections listed in `SECTIONS` in `build.py` are built. A new section also needs an nginx location in the app repo (`deploy/nginx/maize-content.locations.conf`), so add both, in that order.
+## Add a category
+
+Create `content/resources/<category>/_index.md` with `title`, `description`, an optional short `nav_title` for breadcrumbs, and an optional `weight` for its order on the hub. No nginx change is needed, because everything is under `/resources/`. Categories are one level deep.
+
+## Moved URLs
+
+`LEGACY` in `build.py` maps old URL prefixes to new ones. The build writes small noindex redirect pages at the old paths so links keep working; once nginx 301s the old prefix, those stubs are never served. `/ai-syllabus-policy/*` moved to `/resources/ai-syllabus-policy/*` on 2026-10-12.
 
 ## Local build
 

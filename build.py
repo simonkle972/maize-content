@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Build static marketing pages for getmaize.ai from Markdown.
 
-    content/<section>/<slug>.md      ->  dist/<section>/<slug>/index.html
-    content/<section>/_index.md      ->  dist/<section>/index.html   (lists the section's pages)
-    assets/*                         ->  dist/resources/assets/*
-                                     ->  dist/sitemap-content.xml    (every built page, lastmod from git)
+    content/resources/_index.md                ->  dist/resources/index.html (hub: categories + loose pages)
+    content/resources/<slug>.md                ->  dist/resources/<slug>/index.html
+    content/resources/<category>/_index.md     ->  dist/resources/<category>/index.html
+    content/resources/<category>/<slug>.md     ->  dist/resources/<category>/<slug>/index.html
+    assets/*                                   ->  dist/resources/assets/*
+                                               ->  dist/sitemap-content.xml
 
-Only the sections in SECTIONS are built. Each one must have a matching nginx
-location in the app repo (deploy/nginx/maize-content.locations.conf); a new
-section needs that nginx change first, so the build refuses unknown ones.
+Everything lives under /resources/, the only nginx-routed section. Categories
+are plain subfolders and need no nginx change. LEGACY maps old URL prefixes
+to new ones; the build writes noindex redirect stubs there so links keep
+working until nginx 301s them.
 
 Front matter (YAML between --- lines) per page:
     title:        required, shown as <h1> and in <title> ("<title> | Maize")
@@ -18,6 +21,7 @@ Front matter (YAML between --- lines) per page:
     image:        optional absolute URL for og:image (defaults to the site image)
     draft:        optional true -> not built, not in the sitemap
     weight:       optional int, ordering on the section index (lower first)
+    nav_title:    optional, short name for a category in breadcrumbs (_index.md only)
 
 Run `python build.py` from the repo root; `python build.py --check` builds into
 a temp dir and only reports problems (used on pull requests).
@@ -44,11 +48,11 @@ ROOT = Path(__file__).resolve().parent
 SITE_URL = os.environ.get("SITE_URL", "https://getmaize.ai").rstrip("/")
 DEFAULT_IMAGE = f"{SITE_URL}/static/images/og-default.png"
 
-# section path -> human name. Must match the nginx locations in the app repo.
-SECTIONS = {
-    "resources": "Resources",
-    "ai-syllabus-policy": "AI syllabus policy",
-}
+# The only routed top-level section (nginx location in the app repo).
+SECTION = "resources"
+SECTIONS = {SECTION: "Resources"}
+# old URL prefix -> new prefix; stubs are written so old links keep working.
+LEGACY = {"ai-syllabus-policy": "resources/ai-syllabus-policy"}
 ASSETS_URL = "/resources/assets"   # assets ride along under a routed section
 
 FRONT = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.S)
@@ -105,7 +109,7 @@ def render_markdown(body: str) -> str:
     return markdown.markdown(body, extensions=["extra", "toc", "sane_lists", "smarty"])
 
 
-def article_jsonld(page: dict, url: str, section: str) -> dict:
+def article_jsonld(page: dict, url: str, crumbs: list[tuple[str, str]]) -> dict:
     meta = page["meta"]
     org = {"@type": "Organization", "name": "Maize", "url": SITE_URL + "/",
            "logo": {"@type": "ImageObject", "url": f"{SITE_URL}/static/images/maize-logo.png"}}
@@ -127,10 +131,11 @@ def article_jsonld(page: dict, url: str, section: str) -> dict:
             {
                 "@type": "BreadcrumbList",
                 "itemListElement": [
-                    {"@type": "ListItem", "position": 1, "name": "Maize", "item": SITE_URL + "/"},
-                    {"@type": "ListItem", "position": 2, "name": SECTIONS[section],
-                     "item": f"{SITE_URL}/{section}/"},
-                    {"@type": "ListItem", "position": 3, "name": meta["title"], "item": url},
+                    {"@type": "ListItem", "position": i + 1, "name": name, "item": item}
+                    for i, (name, item) in enumerate(
+                        [("Maize", SITE_URL + "/")]
+                        + [(n, SITE_URL + u) for n, u in crumbs]
+                        + [(meta["title"], url)])
                 ],
             },
         ],
@@ -140,38 +145,68 @@ def article_jsonld(page: dict, url: str, section: str) -> dict:
     return doc
 
 
+def load_dir(d: Path) -> dict:
+    """{"index": page|None, "pages": [...]} for the .md files directly in d (non-draft)."""
+    entry = {"index": None, "pages": []}
+    for md in sorted(d.glob("*.md")):
+        page = parse(md)
+        if page["meta"].get("draft"):
+            continue
+        if md.stem == "_index":
+            entry["index"] = page
+            continue
+        if not SLUG.match(md.stem):
+            raise BuildError(f"{md}: filename must be lowercase-with-dashes (it becomes the URL)")
+        page["slug"] = md.stem
+        entry["pages"].append(page)
+    entry["pages"].sort(key=lambda p: (p["meta"].get("weight", 1000), p["meta"].get("date") or dt.date.min, p["slug"]))
+    return entry
+
+
 def collect(content_dir: Path) -> dict:
-    """{section: {"index": page|None, "pages": [page, ...]}} for non-draft pages."""
-    found = {}
-    for section_dir in sorted(p for p in content_dir.iterdir() if p.is_dir()):
-        section = section_dir.name
-        if section.startswith("_"):
-            continue                        # _drafts and friends are never built
-        if section not in SECTIONS:
-            raise BuildError(
-                f"content/{section}/ is not a known section. Add it to SECTIONS here AND to "
-                f"deploy/nginx/maize-content.locations.conf in the app repo first.")
-        entry = {"index": None, "pages": []}
-        for md in sorted(section_dir.glob("*.md")):
-            page = parse(md)
-            if page["meta"].get("draft"):
-                continue
-            if md.stem == "_index":
-                entry["index"] = page
-                continue
-            if not SLUG.match(md.stem):
-                raise BuildError(f"{md}: filename must be lowercase-with-dashes (it becomes the URL)")
-            page["slug"] = md.stem
-            entry["pages"].append(page)
-        entry["pages"].sort(key=lambda p: (p["meta"].get("weight", 1000), p["meta"].get("date") or dt.date.min, p["slug"]))
-        found[section] = entry
-    return found
+    """{"root": entry, "categories": [(slug, entry), ...]}"""
+    for d in sorted(p for p in content_dir.iterdir() if p.is_dir()):
+        if d.name.startswith("_") or d.name == SECTION:
+            continue
+        raise BuildError(
+            f"content/{d.name}/ is not a known section. New topics go in "
+            f"content/{SECTION}/<category>/ (no nginx change needed).")
+    root_dir = content_dir / SECTION
+    root = load_dir(root_dir)
+    if root["index"] is None:
+        raise BuildError(f"content/{SECTION}/_index.md is required (it becomes /{SECTION}/)")
+    cats = []
+    for d in sorted(p for p in root_dir.iterdir() if p.is_dir()):
+        if d.name.startswith("_") or d.name == "assets":
+            continue
+        if not SLUG.match(d.name):
+            raise BuildError(f"{d}: category folder must be lowercase-with-dashes")
+        entry = load_dir(d)
+        if entry["index"] is None:
+            raise BuildError(f"{d}/_index.md is required (it becomes /{SECTION}/{d.name}/)")
+        if any(p.is_dir() for p in d.iterdir()):
+            raise BuildError(f"{d}: categories can't be nested further")
+        cats.append((d.name, entry))
+    cats.sort(key=lambda c: (c[1]["index"]["meta"].get("weight", 1000), c[0]))
+    return {"root": root, "categories": cats}
+
+
+def card(page: dict, path: str) -> dict:
+    return {"url": path, "title": page["meta"]["title"],
+            "description": page["meta"]["description"], "date": page["meta"].get("date")}
+
+
+def stub(target: str) -> str:
+    t = escape(target, {'"': "&quot;"})
+    return ('<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+            f'<meta name="robots" content="noindex"><link rel="canonical" href="{t}">'
+            f'<meta http-equiv="refresh" content="0; url={t}"><title>Moved</title></head>'
+            f'<body><p>This page moved to <a href="{t}">{t}</a>.</p></body></html>\n')
 
 
 def build(content_dir: Path, assets_dir: Path, templates_dir: Path, out_dir: Path) -> list[dict]:
     env = Environment(loader=FileSystemLoader(str(templates_dir)), autoescape=select_autoescape(["html"]))
-    env.globals.update(site_url=SITE_URL, assets_url=ASSETS_URL, sections=SECTIONS,
-                       year=dt.date.today().year)
+    env.globals.update(site_url=SITE_URL, assets_url=ASSETS_URL, year=dt.date.today().year)
     page_tpl = env.get_template("page.html")
     section_tpl = env.get_template("section.html")
 
@@ -179,36 +214,59 @@ def build(content_dir: Path, assets_dir: Path, templates_dir: Path, out_dir: Pat
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
 
+    site = collect(content_dir)
+    root_crumb = (SECTIONS[SECTION], f"/{SECTION}/")
     built = []   # {"url", "lastmod"}
-    for section, entry in collect(content_dir).items():
+
+    def write(path: str, html: str):
+        dest = out_dir / path.strip("/") / "index.html"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(html, encoding="utf-8")
+
+    def render_pages(entry: dict, base: str, crumbs: list) -> list[dict]:
         cards = []
         for page in entry["pages"]:
-            url = f"{SITE_URL}/{section}/{page['slug']}/"
+            path = f"{base}{page['slug']}/"
+            url = SITE_URL + path
             page["lastmod"] = lastmod(page)
-            html = page_tpl.render(
-                meta=page["meta"], body=render_markdown(page["body"]), url=url,
-                section=section, section_name=SECTIONS[section],
-                jsonld=json.dumps(article_jsonld(page, url, section), ensure_ascii=False),
-            )
-            dest = out_dir / section / page["slug"] / "index.html"
-            dest.parent.mkdir(parents=True)
-            dest.write_text(html, encoding="utf-8")
+            write(path, page_tpl.render(
+                meta=page["meta"], body=render_markdown(page["body"]), url=url, crumbs=crumbs,
+                jsonld=json.dumps(article_jsonld(page, url, crumbs), ensure_ascii=False)))
             built.append({"url": url, "lastmod": page["lastmod"]})
-            cards.append({"url": f"/{section}/{page['slug']}/", "title": page["meta"]["title"],
-                          "description": page["meta"]["description"], "date": page["meta"].get("date")})
+            cards.append(card(page, path))
+        return cards
 
+    def index_lastmod(index: dict, prefix: str) -> dt.date:
+        return max([lastmod(index)] + [b["lastmod"] for b in built if b["url"].startswith(SITE_URL + prefix)])
+
+    groups = []
+    for slug, entry in site["categories"]:
+        base = f"/{SECTION}/{slug}/"
         index = entry["index"]
-        if index is None:
-            raise BuildError(f"content/{section}/_index.md is required (it becomes /{section}/)")
-        url = f"{SITE_URL}/{section}/"
-        index["lastmod"] = max([lastmod(index)] + [b["lastmod"] for b in built if b["url"].startswith(url)])
-        html = section_tpl.render(
-            meta=index["meta"], body=render_markdown(index["body"]), url=url,
-            section=section, section_name=SECTIONS[section], cards=cards,
-        )
-        (out_dir / section).mkdir(exist_ok=True)
-        (out_dir / section / "index.html").write_text(html, encoding="utf-8")
-        built.append({"url": url, "lastmod": index["lastmod"]})
+        name = index["meta"].get("nav_title") or index["meta"]["title"]
+        cards = render_pages(entry, base, [root_crumb, (name, base)])
+        index["lastmod"] = index_lastmod(index, base)
+        write(base, section_tpl.render(
+            meta=index["meta"], body=render_markdown(index["body"]), url=SITE_URL + base,
+            crumbs=[root_crumb], cards=cards, groups=[]))
+        built.append({"url": SITE_URL + base, "lastmod": index["lastmod"]})
+        groups.append({"url": base, "title": index["meta"]["title"],
+                       "description": index["meta"]["description"], "cards": cards})
+
+    base = f"/{SECTION}/"
+    loose = render_pages(site["root"], base, [root_crumb])
+    hub = site["root"]["index"]
+    hub["lastmod"] = index_lastmod(hub, base)
+    write(base, section_tpl.render(
+        meta=hub["meta"], body=render_markdown(hub["body"]), url=SITE_URL + base,
+        crumbs=[], cards=loose, groups=groups))
+    built.append({"url": SITE_URL + base, "lastmod": hub["lastmod"]})
+
+    for old, new in LEGACY.items():
+        prefix = f"{SITE_URL}/{new}/"
+        for b in built:
+            if b["url"].startswith(prefix):
+                write(f"/{old}/" + b["url"][len(prefix):], stub(b["url"]))
 
     if assets_dir.exists():
         shutil.copytree(assets_dir, out_dir / ASSETS_URL.strip("/"), dirs_exist_ok=True)

@@ -1,6 +1,5 @@
 {% extends "_base.html" %}
 {% block og_type %}website{% endblock %}
-{% block crumbs %}<span>{{ section_name }}</span>{% endblock %}
 {% block main %}
 <section class="mc-section">
     <header class="mc-article-head">
@@ -10,6 +9,25 @@
     <div class="mc-body">
         {{ body | safe }}
     </div>
+    {% for g in groups %}
+    <section class="mc-group">
+        <div class="mc-group-head">
+            <h2><a href="{{ g.url }}">{{ g.title }}</a></h2>
+            <p>{{ g.description }}</p>
+        </div>
+        {% if g.cards %}
+        <ul class="mc-cards">
+            {% for c in g.cards %}
+            <li class="mc-card">
+                <a href="{{ c.url }}"><h3>{{ c.title }}</h3></a>
+                <p>{{ c.description }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <a class="mc-group-more" href="{{ g.url }}">See all &rarr;</a>
+    </section>
+    {% endfor %}
     {% if cards %}
     <ul class="mc-cards">
         {% for c in cards %}
@@ -20,7 +38,7 @@
         </li>
         {% endfor %}
     </ul>
-    {% else %}
+    {% elif not groups %}
     <p class="mc-muted">New guides are on the way. In the meantime, the <a href="/ai-policy-generator">free AI policy generator</a> is ready to use.</p>
     {% endif %}
 </section>
