@@ -26,7 +26,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css?v=14">
     <link rel="stylesheet" href="/static/css/landing.css?v=4">
-    <link rel="stylesheet" href="{{ assets_url }}/content.css?v=1">
+    <link rel="stylesheet" href="{{ assets_url }}/content.css?v=2">
 </head>
 <body class="landing-page mc-page">
     <header class="site-header">
@@ -48,7 +48,8 @@
         <div class="mc-wrap">
             <nav class="mc-crumbs" aria-label="Breadcrumb">
                 <a href="/">Maize</a><span aria-hidden="true">/</span>
-                {% block crumbs %}<a href="/{{ section }}/">{{ section_name }}</a>{% endblock %}
+                {%- for name, href in crumbs %}<a href="{{ href }}">{{ name }}</a><span aria-hidden="true">/</span>{% endfor %}
+                <span>{{ meta.nav_title or meta.title }}</span>
             </nav>
             {% block main %}{% endblock %}
         </div>
@@ -63,7 +64,6 @@
             <div class="footer-links">
                 <a href="/">Home</a>
                 <a href="/resources/">Resources</a>
-                <a href="/ai-syllabus-policy/">AI syllabus policy</a>
                 <a href="/ai-policy-generator">Free AI policy generator</a>
                 <a href="/privacy">Privacy Policy</a>
                 <a href="/terms">Terms of Service</a>
