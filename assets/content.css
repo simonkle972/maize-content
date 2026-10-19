@@ -1,4 +1,7 @@
 /* Content pages (maize-content). Loaded after the app's style.css + landing.css. */
+/* landing.css fixes the header, which took it out of the flow: the breadcrumb sat under it
+   at every width. Sticky keeps it pinned while scrolling but reserves its real height. */
+.mc-page .site-header { position: sticky; top: 0; }
 .mc-main { background: var(--maize-light-cream, #FDF8F2); padding: 2.5rem 1rem 4rem; }
 .mc-wrap { max-width: 760px; margin: 0 auto; }
 .mc-crumbs { font-size: .875rem; color: #6b5a50; margin-bottom: 1.5rem; display: flex; gap: .5rem; flex-wrap: wrap; }
