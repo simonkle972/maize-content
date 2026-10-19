@@ -18,7 +18,7 @@ Current categories, in hub order (`weight`):
 | Category | For |
 |---|---|
 | `ai-syllabus-policy` (10) | AI syllabus policy examples, one page per discipline |
-| `ai-teaching-assistants` (20) | How an AI teaching assistant works in a course: what students ask, what it leaves to the instructor, what it shows the instructor |
+| `how-maize-works` (20) | What Maize does in a course: how it answers students, what it leaves to the instructor, what it shows the instructor |
 
 Within a category, `weight` on each page sets its order (lower first), and the hub previews the first 3, so give the pages you want on the hub the lowest weights.
 
