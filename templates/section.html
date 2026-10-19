@@ -25,10 +25,25 @@
             {% endfor %}
         </ul>
         {% endif %}
-        <a class="mc-group-more" href="{{ g.url }}">See all &rarr;</a>
+        {% if g.total > g.cards | length %}<a class="mc-group-more" href="{{ g.url }}">See all {{ g.total }} guides &rarr;</a>{% endif %}
     </section>
     {% endfor %}
-    {% if cards %}
+    {% if cards and groups %}
+    {# Hub: guides that fit no category get their own block instead of trailing the last one. #}
+    <section class="mc-group">
+        <div class="mc-group-head">
+            <h2>More guides</h2>
+        </div>
+        <ul class="mc-cards">
+            {% for c in cards %}
+            <li class="mc-card">
+                <a href="{{ c.url }}"><h3>{{ c.title }}</h3></a>
+                <p>{{ c.description }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% elif cards %}
     <ul class="mc-cards">
         {% for c in cards %}
         <li class="mc-card">

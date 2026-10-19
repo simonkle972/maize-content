@@ -54,6 +54,9 @@ SECTIONS = {SECTION: "Resources"}
 # old URL prefix -> new prefix; stubs are written so old links keep working.
 LEGACY = {"ai-syllabus-policy": "resources/ai-syllabus-policy"}
 ASSETS_URL = "/resources/assets"   # assets ride along under a routed section
+# The hub previews each category with its first few pages (by weight, then date) and links
+# to the category page for the rest, so it stays short as categories grow.
+HUB_CARDS_PER_CATEGORY = 3
 
 FRONT = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.S)
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -251,7 +254,8 @@ def build(content_dir: Path, assets_dir: Path, templates_dir: Path, out_dir: Pat
             crumbs=[root_crumb], cards=cards, groups=[]))
         built.append({"url": SITE_URL + base, "lastmod": index["lastmod"]})
         groups.append({"url": base, "title": index["meta"]["title"],
-                       "description": index["meta"]["description"], "cards": cards})
+                       "description": index["meta"]["description"],
+                       "cards": cards[:HUB_CARDS_PER_CATEGORY], "total": len(cards)})
 
     base = f"/{SECTION}/"
     loose = render_pages(site["root"], base, [root_crumb])
