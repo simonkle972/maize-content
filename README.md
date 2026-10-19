@@ -7,13 +7,20 @@ Everything lives under `/resources/`. Topics are categories (subfolders) inside 
 
 | URL | Source |
 |---|---|
-| `/resources/` | `content/resources/_index.md` plus auto-generated blocks for each category and any top-level guides |
-| `/resources/<slug>/` | `content/resources/<slug>.md` (a guide that fits no category) |
+| `/resources/` | `content/resources/_index.md` plus a block per category (its first 3 pages and a "See all N guides" link when it has more) and a "More guides" block for top-level guides |
+| `/resources/<slug>/` | `content/resources/<slug>.md` (a guide that fits no category; prefer a category) |
 | `/resources/<category>/` | `content/resources/<category>/_index.md` plus an auto-generated list of its pages |
 | `/resources/<category>/<slug>/` | `content/resources/<category>/<slug>.md` |
 | `/sitemap-content.xml` | generated from every built page; the app's `/sitemap.xml` index points at it |
 
-Current categories: `ai-syllabus-policy` (AI syllabus policy examples by discipline).
+Current categories, in hub order (`weight`):
+
+| Category | For |
+|---|---|
+| `ai-syllabus-policy` (10) | AI syllabus policy examples, one page per discipline |
+| `how-maize-ai-tas-work` (20) | What a Maize AI TA does in a course: how it answers students, what it leaves to the instructor, what it shows the instructor |
+
+Within a category, `weight` on each page sets its order (lower first), and the hub previews the first 3, so give the pages you want on the hub the lowest weights.
 
 ## Add a page
 

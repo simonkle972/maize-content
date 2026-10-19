@@ -108,3 +108,24 @@ def test_bad_slug_is_refused(site, tmp_path):
     write(site / "resources" / "Bad_Slug.md", GOOD)
     with pytest.raises(build.BuildError, match="lowercase-with-dashes"):
         build.build(site, ROOT / "assets", ROOT / "templates", tmp_path / "dist")
+
+
+def test_hub_previews_three_per_category_and_heads_loose_guides(site, tmp_path):
+    many = site / "resources" / "ai-teaching-assistants"
+    write(many / "_index.md",
+          "---\ntitle: AI teaching assistants\ndescription: How an AI teaching assistant works inside a course, written from running Maize.\n---\nIntro.\n")
+    for i, slug in enumerate(["first", "second", "third", "fourth"], start=1):
+        write(many / f"{slug}.md", GOOD.replace("date: 2026-10-01", f"date: 2026-10-01\nweight: {i}"))
+    out = tmp_path / "dist"
+    build.build(site, ROOT / "assets", ROOT / "templates", out)
+
+    hub = (out / "resources" / "index.html").read_text()
+    for slug in ("first", "second", "third"):
+        assert f'href="/resources/ai-teaching-assistants/{slug}/"' in hub
+    assert 'href="/resources/ai-teaching-assistants/fourth/"' not in hub     # past the preview
+    assert "See all 4 guides" in hub
+    assert "See all 1 guides" not in hub and hub.count("See all") == 1        # small category: no link
+    assert "<h2>More guides</h2>" in hub and 'href="/resources/loose-guide/"><h3>' in hub
+
+    cat = (out / "resources" / "ai-teaching-assistants" / "index.html").read_text()
+    assert 'href="/resources/ai-teaching-assistants/fourth/"' in cat          # category page lists all
