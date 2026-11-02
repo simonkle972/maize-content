@@ -2,6 +2,17 @@
 title: AI syllabus policy examples by discipline
 nav_title: AI syllabus policy
 weight: 10
+groups:
+  - title: Statistics and data
+    pages: [statistics-course, data-analytics-course]
+  - title: Economics and finance
+    pages: [intro-economics-course, corporate-finance-course]
+  - title: Accounting
+    pages: [financial-accounting-course]
+  - title: Math
+    pages: [calculus-course]
+  - title: Computing
+    pages: [intro-programming-course, machine-learning-course]
 description: Sample AI syllabus policies for quantitative courses, organized by discipline, at three levels of use. Companion guides to the free Maize policy generator.
 ---
 A course AI policy works when students can tell, for each assignment, what is allowed and how to disclose it. Most published examples are written for essay-based courses. These guides are for quantitative courses, where the hard questions are about code, problem sets and showing work.

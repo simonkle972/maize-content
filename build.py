@@ -22,6 +22,8 @@ Front matter (YAML between --- lines) per page:
     draft:        optional true -> not built, not in the sitemap
     weight:       optional int, ordering on the section index (lower first)
     nav_title:    optional, short name for a category in breadcrumbs (_index.md only)
+    groups:       optional list of {title, pages: [slug, ...]}; splits a category page under
+                  subheadings (_index.md only). Pages left out appear under "More guides".
 
 Run `python build.py` from the repo root; `python build.py --check` builds into
 a temp dir and only reports problems (used on pull requests).
@@ -199,6 +201,35 @@ def card(page: dict, path: str) -> dict:
             "description": page["meta"]["description"], "date": page["meta"].get("date")}
 
 
+def group_cards(index: dict, cards: list[dict]) -> list[dict]:
+    """Sections for a category page from `groups` in its _index.md; [] means a flat list."""
+    spec = index["meta"].get("groups")
+    if not spec:
+        return []
+    path = index["path"]
+    by_slug = {c["url"].rstrip("/").rsplit("/", 1)[-1]: c for c in cards}
+    seen = set()
+    groups = []
+    for g in spec:
+        if not isinstance(g, dict) or not g.get("title") or not g.get("pages"):
+            raise BuildError(f"{path}: each entry in `groups` needs `title` and `pages`")
+        for slug in g["pages"]:
+            if slug in seen:
+                raise BuildError(f"{path}: `{slug}` is listed in more than one group")
+            seen.add(slug)
+            if not (path.parent / f"{slug}.md").exists():
+                raise BuildError(f"{path}: group `{g['title']}` lists `{slug}`, which has no page")
+        # A listed page that is still a draft simply does not show.
+        groups.append({"title": g["title"], "cards": [by_slug[s] for s in g["pages"] if s in by_slug]})
+    rest = [c for s, c in by_slug.items() if s not in seen]
+    if rest:
+        groups.append({"title": "More guides", "cards": rest})
+    groups = [g for g in groups if g["cards"]]
+    for g in groups:
+        g["total"] = len(g["cards"])
+    return groups
+
+
 def stub(target: str) -> str:
     t = escape(target, {'"': "&quot;"})
     return ('<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
@@ -249,9 +280,10 @@ def build(content_dir: Path, assets_dir: Path, templates_dir: Path, out_dir: Pat
         name = index["meta"].get("nav_title") or index["meta"]["title"]
         cards = render_pages(entry, base, [root_crumb, (name, base)])
         index["lastmod"] = index_lastmod(index, base)
+        sections = group_cards(index, cards)
         write(base, section_tpl.render(
             meta=index["meta"], body=render_markdown(index["body"]), url=SITE_URL + base,
-            crumbs=[root_crumb], cards=cards, groups=[]))
+            crumbs=[root_crumb], cards=[] if sections else cards, groups=sections))
         built.append({"url": SITE_URL + base, "lastmod": index["lastmod"]})
         groups.append({"url": base, "title": index["meta"]["title"],
                        "description": index["meta"]["description"],

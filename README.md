@@ -22,6 +22,8 @@ Current categories, in hub order (`weight`):
 
 Within a category, `weight` on each page sets its order (lower first), and the hub previews the first 3, so give the pages you want on the hub the lowest weights.
 
+A category page can be split under subheadings by adding `groups` to its `_index.md`: a list of `title` and `pages` (slugs, shown in the listed order). `ai-syllabus-policy` does this. When you add a page to a grouped category, list its slug in a group; a page you leave out still appears, under "More guides". The build fails on a slug with no page or one listed twice.
+
 ## Add a page
 
 1. Copy `content/_drafts/example-article.md` to `content/resources/<category>/<slug>.md` (or `content/resources/<slug>.md`). The filename is the URL: lowercase, dashes only.
