@@ -12,8 +12,8 @@
     {% for g in groups %}
     <section class="mc-group">
         <div class="mc-group-head">
-            <h2><a href="{{ g.url }}">{{ g.title }}</a></h2>
-            <p>{{ g.description }}</p>
+            <h2>{% if g.url %}<a href="{{ g.url }}">{{ g.title }}</a>{% else %}{{ g.title }}{% endif %}</h2>
+            {% if g.description %}<p>{{ g.description }}</p>{% endif %}
         </div>
         {% if g.cards %}
         <ul class="mc-cards">
@@ -21,6 +21,8 @@
             <li class="mc-card">
                 <a href="{{ c.url }}"><h3>{{ c.title }}</h3></a>
                 <p>{{ c.description }}</p>
+                {# Category subgroups keep the date; hub previews (which have a url) do not show it. #}
+                {% if c.date and not g.url %}<time datetime="{{ c.date.isoformat() }}">{{ c.date.strftime('%B %-d, %Y') }}</time>{% endif %}
             </li>
             {% endfor %}
         </ul>

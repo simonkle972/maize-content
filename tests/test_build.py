@@ -129,3 +129,52 @@ def test_hub_previews_three_per_category_and_heads_loose_guides(site, tmp_path):
 
     cat = (out / "resources" / "ai-teaching-assistants" / "index.html").read_text()
     assert 'href="/resources/ai-teaching-assistants/fourth/"' in cat          # category page lists all
+
+
+GROUPED_INDEX = """---
+title: AI syllabus policy examples
+description: Guides and examples for writing a course AI policy, by assessment type and discipline.
+groups:
+  - title: Statistics and data
+    pages: [stats, data]
+  - title: Computing
+    pages: [code]
+---
+Intro.
+"""
+
+
+def test_category_groups_split_its_page_only(site, tmp_path):
+    cat = site / "resources" / "ai-syllabus-policy"
+    write(cat / "_index.md", GROUPED_INDEX)
+    for i, slug in enumerate(["stats", "data", "code", "unlisted"], start=1):
+        write(cat / f"{slug}.md", GOOD.replace("date: 2026-10-01", f"date: 2026-10-01\nweight: {i}"))
+    (cat / "problem-sets.md").unlink()
+    (cat / "hidden.md").unlink()
+    out = tmp_path / "dist"
+    build.build(site, ROOT / "assets", ROOT / "templates", out)
+
+    page = (out / "resources" / "ai-syllabus-policy" / "index.html").read_text()
+    order = [page.index(s) for s in ("<h2>Statistics and data</h2>", "/ai-syllabus-policy/stats/",
+                                     "/ai-syllabus-policy/data/", "<h2>Computing</h2>",
+                                     "/ai-syllabus-policy/code/", "<h2>More guides</h2>",
+                                     "/ai-syllabus-policy/unlisted/")]
+    assert order == sorted(order)                                    # unlisted page is never dropped
+    assert page.count("/ai-syllabus-policy/stats/") == 1             # not repeated in a flat list
+    assert "<time" in page
+
+    hub = (out / "resources" / "index.html").read_text()
+    assert "Statistics and data" not in hub                          # hub preview stays flat
+
+
+def test_group_with_unknown_page_is_refused(site, tmp_path):
+    write(site / "resources" / "ai-syllabus-policy" / "_index.md", GROUPED_INDEX)
+    with pytest.raises(build.BuildError, match="has no page"):
+        build.build(site, ROOT / "assets", ROOT / "templates", tmp_path / "dist")
+
+
+def test_page_in_two_groups_is_refused(site, tmp_path):
+    cat = site / "resources" / "ai-syllabus-policy"
+    write(cat / "_index.md", GROUPED_INDEX.replace("[stats, data]", "[problem-sets]").replace("[code]", "[problem-sets]"))
+    with pytest.raises(build.BuildError, match="more than one group"):
+        build.build(site, ROOT / "assets", ROOT / "templates", tmp_path / "dist")
