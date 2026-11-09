@@ -6,9 +6,11 @@ groups:
   - title: Statistics and data
     pages: [statistics-course, data-analytics-course]
   - title: Economics and finance
-    pages: [intro-economics-course, corporate-finance-course]
+    pages: [intro-economics-course, econometrics-course, corporate-finance-course]
   - title: Accounting
     pages: [financial-accounting-course]
+  - title: Operations and management science
+    pages: [operations-quant-methods-course]
   - title: Math
     pages: [calculus-course]
   - title: Computing
