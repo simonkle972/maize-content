@@ -8,11 +8,11 @@ groups:
   - title: Economics and finance
     pages: [intro-economics-course, econometrics-course, corporate-finance-course]
   - title: Accounting
-    pages: [financial-accounting-course]
+    pages: [financial-accounting-course, managerial-accounting-course]
   - title: Operations and management science
     pages: [operations-quant-methods-course]
   - title: Math
-    pages: [calculus-course]
+    pages: [calculus-course, linear-algebra-course]
   - title: Computing
     pages: [intro-programming-course, machine-learning-course]
 description: Sample AI syllabus policies for quantitative courses, organized by discipline, at three levels of use. Companion guides to the free Maize policy generator.
